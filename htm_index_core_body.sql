@@ -36,11 +36,13 @@ CREATE OR REPLACE PACKAGE BODY HTM_INDEX_CORE AS
     p_parent_id NUMBER,
     p_level_num NUMBER,
     p_is_leaf NUMBER,
-    p_v_indices DBMS_SQL.NUMBER_TABLE -- Indices into g_vertices
+    p_v_indices HTM_NUMBER_LIST -- Indices into g_vertices
   ) RETURN HTM_NODE IS
-    node_children_ids DBMS_SQL.NUMBER_TABLE; -- Initially empty for new nodes
+    node_children_ids HTM_NUMBER_LIST; -- Initially empty for new nodes
   BEGIN
     -- p_children_ids is empty for now, will be filled by make_new_layer
+    -- Initialize node_children_ids to an empty list if HTM_NODE constructor expects a non-null collection
+    node_children_ids := HTM_NUMBER_LIST(); 
     RETURN HTM_NODE(
       node_id => p_node_id,
       parent_id => p_parent_id,
@@ -59,7 +61,7 @@ CREATE OR REPLACE PACKAGE BODY HTM_INDEX_CORE AS
     child_node_id NUMBER;
     child_node HTM_NODE;
     
-    v_indices DBMS_SQL.NUMBER_TABLE;
+    v_indices HTM_NUMBER_LIST;
     v0 HTM_VECTOR;
     v1 HTM_VECTOR;
     v2 HTM_VECTOR;
@@ -71,7 +73,7 @@ CREATE OR REPLACE PACKAGE BODY HTM_INDEX_CORE AS
     w1_idx PLS_INTEGER;
     w2_idx PLS_INTEGER;
 
-    child_v_indices DBMS_SQL.NUMBER_TABLE := DBMS_SQL.NUMBER_TABLE(3);
+    child_v_indices HTM_NUMBER_LIST := HTM_NUMBER_LIST(); -- Initialize empty, then EXTEND
     num_nodes_in_layer NUMBER := 0;
     num_new_vertices NUMBER := 0; -- Track new vertices for this layer
     
@@ -118,6 +120,9 @@ CREATE OR REPLACE PACKAGE BODY HTM_INDEX_CORE AS
       -- Create 4 child nodes
       FOR child_idx IN 0 .. 3 LOOP
         child_node_id := (parent_node_id * 4) + child_idx; -- Or (parent_node_id << 2) | child_idx
+        
+        child_v_indices.DELETE; -- Clear before reuse or re-initialize: child_v_indices := HTM_NUMBER_LIST();
+        child_v_indices.EXTEND(3);
 
         CASE child_idx
           WHEN 0 THEN -- v0, w2, w1
@@ -158,7 +163,7 @@ CREATE OR REPLACE PACKAGE BODY HTM_INDEX_CORE AS
 
   -- Public Procedures
   PROCEDURE initialize_htm(build_level NUMBER, query_level NUMBER) IS
-    v_indices DBMS_SQL.NUMBER_TABLE := DBMS_SQL.NUMBER_TABLE(3);
+    v_indices HTM_NUMBER_LIST := HTM_NUMBER_LIST(); -- Initialize empty, then EXTEND
     node_id NUMBER;
     
     -- Initial vertices of the octahedron (0-indexed for g_vertices)
@@ -181,20 +186,21 @@ CREATE OR REPLACE PACKAGE BODY HTM_INDEX_CORE AS
     -- N1: (2,1,4) -> Y+, X-, Z+
     -- N2: (1,3,4) -> X-, Y-, Z+
     -- N3: (3,0,4) -> Y-, X+, Z+
-    TYPE base_triangle_def IS RECORD (id NUMBER, v_idx DBMS_SQL.NUMBER_TABLE);
+    TYPE base_triangle_def IS RECORD (id NUMBER, v_idx HTM_NUMBER_LIST);
     TYPE base_triangle_list IS TABLE OF base_triangle_def;
     initial_triangles CONSTANT base_triangle_list := base_triangle_list(
-        base_triangle_def(8, DBMS_SQL.NUMBER_TABLE(0, 5, 3)), -- S0
-        base_triangle_def(9, DBMS_SQL.NUMBER_TABLE(3, 5, 1)), -- S1
-        base_triangle_def(10, DBMS_SQL.NUMBER_TABLE(1, 5, 2)),-- S2
-        base_triangle_def(11, DBMS_SQL.NUMBER_TABLE(2, 5, 0)),-- S3
-        base_triangle_def(12, DBMS_SQL.NUMBER_TABLE(0, 2, 4)),-- N0
-        base_triangle_def(13, DBMS_SQL.NUMBER_TABLE(2, 1, 4)),-- N1
-        base_triangle_def(14, DBMS_SQL.NUMBER_TABLE(1, 3, 4)),-- N2
-        base_triangle_def(15, DBMS_SQL.NUMBER_TABLE(3, 0, 4)) -- N3
+        base_triangle_def(8, HTM_NUMBER_LIST(0, 5, 3)), -- S0
+        base_triangle_def(9, HTM_NUMBER_LIST(3, 5, 1)), -- S1
+        base_triangle_def(10, HTM_NUMBER_LIST(1, 5, 2)),-- S2
+        base_triangle_def(11, HTM_NUMBER_LIST(2, 5, 0)),-- S3
+        base_triangle_def(12, HTM_NUMBER_LIST(0, 2, 4)),-- N0
+        base_triangle_def(13, HTM_NUMBER_LIST(2, 1, 4)),-- N1
+        base_triangle_def(14, HTM_NUMBER_LIST(1, 3, 4)),-- N2
+        base_triangle_def(15, HTM_NUMBER_LIST(3, 0, 4)) -- N3
     );
     
   BEGIN
+    v_indices.EXTEND(3); -- For base triangles
     g_max_build_level := build_level;
     g_max_query_level := query_level;
 
@@ -250,7 +256,7 @@ CREATE OR REPLACE PACKAGE BODY HTM_INDEX_CORE AS
     parent_node_id NUMBER;
     target_level NUMBER;
     current_level NUMBER;
-    child_index_path DBMS_SQL.NUMBER_TABLE; -- Stores child indices from build_level to target_level
+    child_index_path HTM_NUMBER_LIST := HTM_NUMBER_LIST(); -- Stores child indices from build_level to target_level
     
     temp_v0 HTM_VECTOR;
     temp_v1 HTM_VECTOR;
@@ -335,9 +341,12 @@ CREATE OR REPLACE PACKAGE BODY HTM_INDEX_CORE AS
     node_parent_id NUMBER;
     is_leaf_node NUMBER;
     node_name VARCHAR2(100);
-    children DBMS_SQL.NUMBER_TABLE := DBMS_SQL.NUMBER_TABLE();
-    v_ids_placeholder DBMS_SQL.NUMBER_TABLE := DBMS_SQL.NUMBER_TABLE(0,0,0); -- Placeholder, actual vertices via get_node_vertices
+    children HTM_NUMBER_LIST := HTM_NUMBER_LIST();
+    v_ids_placeholder HTM_NUMBER_LIST := HTM_NUMBER_LIST(); -- Placeholder, actual vertices via get_node_vertices
   BEGIN
+    v_ids_placeholder.EXTEND(3); -- Initialize with 3 nulls or dummy values if needed by constructor
+    v_ids_placeholder(1) := 0; v_ids_placeholder(2) := 0; v_ids_placeholder(3) := 0;
+
     IF g_nodes.EXISTS(node_id) THEN
       RETURN g_nodes(node_id);
     ELSE
@@ -384,7 +393,7 @@ CREATE OR REPLACE PACKAGE BODY HTM_INDEX_CORE AS
     found_in_child BOOLEAN;
     
     -- Start with level 0 nodes (IDs 8-15)
-    level0_ids DBMS_SQL.NUMBER_TABLE := DBMS_SQL.NUMBER_TABLE(8,9,10,11,12,13,14,15);
+    level0_ids HTM_NUMBER_LIST := HTM_NUMBER_LIST(8,9,10,11,12,13,14,15);
   BEGIN
     IF target_level < 0 OR target_level > g_max_query_level THEN
       RAISE_APPLICATION_ERROR(-20020, 'Target level out of range.');

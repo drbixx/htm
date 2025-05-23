@@ -254,7 +254,7 @@ CREATE OR REPLACE PACKAGE BODY HTM_QUERY_INTERFACE AS
   ) RETURN HTM_ID_RANGE_LIST IS
     results HTM_ID_RANGE_LIST;
     params type_circle_params;
-    root_nodes DBMS_SQL.NUMBER_TABLE := DBMS_SQL.NUMBER_TABLE(8,9,10,11,12,13,14,15); -- S0-N3
+    root_nodes HTM_NUMBER_LIST := HTM_NUMBER_LIST(8,9,10,11,12,13,14,15); -- S0-N3
     temp_center_vec HTM_VECTOR := center_vec;
   BEGIN
     IF temp_center_vec IS NULL OR radius_degrees IS NULL OR query_level IS NULL THEN
@@ -311,7 +311,7 @@ CREATE OR REPLACE PACKAGE BODY HTM_QUERY_INTERFACE AS
   ) RETURN HTM_ID_RANGE_LIST IS
     results HTM_ID_RANGE_LIST;
     params type_hull_params;
-    root_nodes DBMS_SQL.NUMBER_TABLE := DBMS_SQL.NUMBER_TABLE(8,9,10,11,12,13,14,15);
+    root_nodes HTM_NUMBER_LIST := HTM_NUMBER_LIST(8,9,10,11,12,13,14,15);
     num_hull_vertices NUMBER;
     v_i HTM_VECTOR;
     v_i_plus_1 HTM_VECTOR;

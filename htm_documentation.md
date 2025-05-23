@@ -21,6 +21,7 @@ The PL/SQL HTM system is organized into several packages and a set of SQL object
 
 These types define the fundamental data structures used throughout the system. They are typically defined in `htm_types.sql` (or individual files like `HTM_VECTOR_spec.sql`, `HTM_VECTOR_body.sql`, etc., if generated that way).
 
+*   `HTM_NUMBER_LIST`: A collection type for storing lists of numbers.
 *   `HTM_VECTOR`: Represents a 3D Cartesian vector or a an RA/Dec coordinate pair.
 *   `HTM_VERTEX_LIST`: A collection of `HTM_VECTOR` objects, typically used for lists of vertices.
 *   `HTM_ID_RANGE`: Represents a range of HTM IDs (low_id, high_id).
@@ -60,11 +61,12 @@ To use the PL/SQL HTM system, the various SQL and PL/SQL files must be compiled 
 **Compilation Order:**
 
 1.  **Object Types and Collection Types (e.g., `htm_types.sql`):**
+    *   `HTM_NUMBER_LIST` (if defined in `htm_types.sql`, it should be early in this file)
     *   `HTM_VECTOR` (spec and body)
     *   `HTM_VERTEX_LIST`
     *   `HTM_ID_RANGE` (spec and body)
     *   `HTM_ID_RANGE_LIST`
-    *   `HTM_NODE` (spec and body)
+    *   `HTM_NODE` (spec and body - depends on `HTM_NUMBER_LIST`)
     *   `HTM_NODE_LIST`
     *   `HTM_LAYER_INFO` (spec and body)
     *   `HTM_LAYER_LIST`
@@ -138,9 +140,9 @@ The build and query levels defined during initialization are stored in global va
         *   `parent_id` (NUMBER): ID of the parent node.
         *   `level_num` (NUMBER): Depth of the node in the HTM tree (0 for root triangles).
         *   `is_leaf` (NUMBER): Flag (0 or 1) indicating if the node is a leaf in the pre-built tree.
-        *   `children_ids` (DBMS_SQL.NUMBER_TABLE): List of IDs for the four child nodes.
-        *   `v_ids` (DBMS_SQL.NUMBER_TABLE): List of three 0-indexed integers referencing vertices in the global `g_vertices` list in `HTM_INDEX_CORE`.
-        *   `w_ids` (DBMS_SQL.NUMBER_TABLE): (Potentially used for midpoint vertex IDs, though current implementation primarily uses `v_ids` and calculates midpoints on the fly).
+        *   `children_ids` (HTM_NUMBER_LIST): List of IDs for the four child nodes.
+        *   `v_ids` (HTM_NUMBER_LIST): List of three 0-indexed integers referencing vertices in the global `g_vertices` list in `HTM_INDEX_CORE`.
+        *   `w_ids` (HTM_NUMBER_LIST): (Potentially used for midpoint vertex IDs, though current implementation primarily uses `v_ids` and calculates midpoints on the fly).
     *   **Key Constructors:**
         *   `HTM_NODE(p_node_id NUMBER, p_parent_id NUMBER, ...)`
 
@@ -158,6 +160,8 @@ The build and query levels defined during initialization are stored in global va
 
 ### Collection Types
 
+*   **`HTM_NUMBER_LIST`**: `TABLE OF NUMBER`
+    *   A collection type for storing lists of numbers, used internally by `HTM_NODE` for attributes like `children_ids`, `v_ids`, and `w_ids`.
 *   **`HTM_VERTEX_LIST`**: `TABLE OF HTM_VECTOR`
     *   Used for lists of vertices, such as the vertices of a polygon or the global vertex list.
 *   **`HTM_ID_RANGE_LIST`**: `TABLE OF HTM_ID_RANGE`

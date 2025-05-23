@@ -1,3 +1,6 @@
+CREATE OR REPLACE TYPE HTM_NUMBER_LIST AS TABLE OF NUMBER;
+/
+
 CREATE OR REPLACE TYPE HTM_VECTOR AS OBJECT (
   x NUMBER,
   y NUMBER,
@@ -92,18 +95,18 @@ CREATE OR REPLACE TYPE HTM_NODE AS OBJECT (
   parent_id NUMBER,
   level_num NUMBER,
   is_leaf NUMBER, -- 0 or 1
-  children_ids DBMS_SQL.NUMBER_TABLE,
-  v_ids DBMS_SQL.NUMBER_TABLE,
-  w_ids DBMS_SQL.NUMBER_TABLE,
+  children_ids HTM_NUMBER_LIST,
+  v_ids HTM_NUMBER_LIST,
+  w_ids HTM_NUMBER_LIST,
 
   CONSTRUCTOR FUNCTION HTM_NODE(
     p_node_id NUMBER,
     p_parent_id NUMBER,
     p_level_num NUMBER,
     p_is_leaf NUMBER,
-    p_children_ids DBMS_SQL.NUMBER_TABLE,
-    p_v_ids DBMS_SQL.NUMBER_TABLE,
-    p_w_ids DBMS_SQL.NUMBER_TABLE DEFAULT NULL
+    p_children_ids HTM_NUMBER_LIST,
+    p_v_ids HTM_NUMBER_LIST,
+    p_w_ids HTM_NUMBER_LIST DEFAULT NULL
   ) RETURN SELF AS RESULT
 );
 /
@@ -114,9 +117,9 @@ CREATE OR REPLACE TYPE BODY HTM_NODE AS
     p_parent_id NUMBER,
     p_level_num NUMBER,
     p_is_leaf NUMBER,
-    p_children_ids DBMS_SQL.NUMBER_TABLE,
-    p_v_ids DBMS_SQL.NUMBER_TABLE,
-    p_w_ids DBMS_SQL.NUMBER_TABLE DEFAULT NULL
+    p_children_ids HTM_NUMBER_LIST,
+    p_v_ids HTM_NUMBER_LIST,
+    p_w_ids HTM_NUMBER_LIST DEFAULT NULL
   ) RETURN SELF AS RESULT IS
   BEGIN
     SELF.node_id := p_node_id;
