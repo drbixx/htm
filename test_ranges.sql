@@ -1,6 +1,10 @@
 SET SERVEROUTPUT ON SIZE UNLIMITED;
 
 DECLARE
+  l_ranges HTM_ID_RANGE_LIST;
+  expected_str VARCHAR2(200);
+  bool_res BOOLEAN;
+
   -- Helper for string comparison (for range list string representation)
   PROCEDURE assert_equals_string(test_name VARCHAR2, actual VARCHAR2, expected VARCHAR2) IS
   BEGIN
@@ -37,11 +41,6 @@ DECLARE
       DBMS_OUTPUT.PUT_LINE(test_name || ': FAIL - Expected ' || expected || ', Got ' || actual);
     END IF;
   END assert_equals_number;
-
-
-  l_ranges HTM_ID_RANGE_LIST;
-  expected_str VARCHAR2(200);
-  bool_res BOOLEAN;
 
 BEGIN
   DBMS_OUTPUT.PUT_LINE('--- Running HTM_RANGE_UTILS Tests ---');

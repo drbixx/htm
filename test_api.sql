@@ -1,6 +1,15 @@
 SET SERVEROUTPUT ON SIZE UNLIMITED;
 
 DECLARE
+  -- Script-level variables moved to the top
+  build_level_api NUMBER := 7; -- Build level for API tests
+  query_level_api NUMBER := 10; -- Query level for API tests
+  num_res NUMBER;
+  str_res VARCHAR2(200);
+  vec_res HTM_VECTOR;
+  range_count NUMBER;
+  first_range HTM_ID_RANGE;
+
   -- Helper for float comparison
   PROCEDURE assert_equals_float(test_name VARCHAR2, actual NUMBER, expected NUMBER, tolerance NUMBER := 0.0001) IS
   BEGIN
@@ -51,16 +60,6 @@ DECLARE
       DBMS_OUTPUT.PUT_LINE(test_name || ': FAIL - Condition was false');
     END IF;
   END assert_true;
-
-  build_level_api NUMBER := 7; -- Build level for API tests
-  query_level_api NUMBER := 10; -- Query level for API tests
-  
-  num_res NUMBER;
-  str_res VARCHAR2(200);
-  vec_res HTM_VECTOR;
-  
-  range_count NUMBER;
-  first_range HTM_ID_RANGE;
 
 BEGIN
   DBMS_OUTPUT.PUT_LINE('--- Initializing HTM System for API Tests ---');
