@@ -92,7 +92,7 @@ BEGIN
   -- Test lookup_htm_id for a point at the North Pole (RA=0, Dec=90)
   BEGIN
     num_res := HTM_SQL_API.lookup_htm_id(0, 90, query_level_api);
-    assert_not_null('lookup_htm_id (0,90) L' || query_level_api || ' not null', num_res);
+    assert_not_null('lookup_htm_id (0,90) L' || query_level_api || ' not null', ANYDATA.ConvertNumber(num_res));
     DBMS_OUTPUT.PUT_LINE('  Value for (0,90) L' || query_level_api || ': ' || num_res);
   EXCEPTION WHEN OTHERS THEN
     DBMS_OUTPUT.PUT_LINE('lookup_htm_id (0,90) L' || query_level_api || ': FAIL - Error: ' || SQLERRM);
@@ -103,7 +103,7 @@ BEGIN
   DBMS_OUTPUT.PUT_LINE('-- get_htm_point_radec --');
   -- N0 ID is 12
   str_res := HTM_SQL_API.get_htm_point_radec(12);
-  assert_not_null('get_htm_point_radec(12) not null', str_res);
+  assert_not_null('get_htm_point_radec(12) not null', ANYDATA.ConvertVarChar2(str_res));
   DBMS_OUTPUT.PUT_LINE('  RA/Dec for N0 (ID 12): ' || str_res);
   -- Expected for N0 (center of (1,0,0),(0,1,0),(0,0,1)) is approx (RA=45, Dec=35.26)
   -- (1/sqrt(3), 1/sqrt(3), 1/sqrt(3)) -> atan2(1,1)=45 deg. asin(1/sqrt(3)) = 35.26 deg.
@@ -124,7 +124,7 @@ BEGIN
   -- 3. get_htm_point_cartesian
   DBMS_OUTPUT.PUT_LINE('-- get_htm_point_cartesian --');
   vec_res := HTM_SQL_API.get_htm_point_cartesian(12);
-  assert_not_null('get_htm_point_cartesian(12) not null', vec_res);
+  assert_not_null('get_htm_point_cartesian(12) not null', ANYDATA.ConvertObject(vec_res));
   DBMS_OUTPUT.PUT_LINE('  Cartesian for N0 (ID 12): ' || vec_res.to_string());
   DECLARE
     expected_vec HTM_VECTOR := HTM_VECTOR(1/SQRT(3), 1/SQRT(3), 1/SQRT(3));
