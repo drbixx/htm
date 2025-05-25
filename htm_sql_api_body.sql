@@ -12,8 +12,6 @@ CREATE OR REPLACE PACKAGE BODY HTM_SQL_API AS
     IF p_build_level < 0 OR p_query_level < 0 THEN
       RAISE_APPLICATION_ERROR(-20301, 'Build level and query level must be non-negative.');
     END IF;
-    -- Further validation might be needed if HTM_INDEX_CORE has stricter limits (e.g. max query_level)
-    -- For now, assume HTM_INDEX_CORE handles its own internal validation of levels.
     HTM_INDEX_CORE.initialize_htm(p_build_level, p_query_level);
   END initialize_htm_system;
 
@@ -32,12 +30,11 @@ CREATE OR REPLACE PACKAGE BODY HTM_SQL_API AS
         RAISE_APPLICATION_ERROR(-20311, 'Target level is out of range. Max query level is ' || HTM_INDEX_CORE.g_max_query_level);
     END IF;
 
-    vec_p := HTM_VECTOR(p_ra, p_dec); -- Constructor handles conversion to Cartesian
+    vec_p := HTM_VECTOR(p_ra, p_dec); 
     RETURN HTM_INDEX_CORE.id_by_point(vec_p, p_target_level);
   EXCEPTION
     WHEN OTHERS THEN
-      -- Could log SQLERRM here
-      RAISE; -- Re-raise the exception
+      RAISE; 
   END lookup_htm_id;
 
   FUNCTION get_htm_point_radec(
@@ -51,7 +48,7 @@ CREATE OR REPLACE PACKAGE BODY HTM_SQL_API AS
     END IF;
 
     cart_vec := HTM_INDEX_CORE.point_by_id(p_htm_id);
-    IF cart_vec IS NULL THEN -- Should not happen if point_by_id is robust
+    IF cart_vec IS NULL THEN 
         RAISE_APPLICATION_ERROR(-20321, 'Failed to get Cartesian point for HTM ID: ' || p_htm_id);
     END IF;
     
@@ -88,15 +85,12 @@ CREATE OR REPLACE PACKAGE BODY HTM_SQL_API AS
   ) RETURN HTM_ID_RANGE_LIST PIPELINED IS
     result_ranges HTM_ID_RANGE_LIST;
   BEGIN
-    -- Validation is handled by HTM_QUERY_INTERFACE.circle_region_intersect
-    -- but can add specific checks here if desired (e.g. for nulls early)
     IF p_ra IS NULL OR p_dec IS NULL OR p_radius_degrees IS NULL OR p_query_level IS NULL THEN
       RAISE_APPLICATION_ERROR(-20340, 'Circle parameters (RA, Dec, Radius, Level) cannot be null.');
     END IF;
      IF p_query_level < 0 OR p_query_level > HTM_INDEX_CORE.g_max_query_level THEN
        RAISE_APPLICATION_ERROR(-20341, 'Query level is out of range.');
     END IF;
-
 
     result_ranges := HTM_QUERY_INTERFACE.circle_region_intersect(p_ra, p_dec, p_radius_degrees, p_query_level);
 
@@ -108,7 +102,6 @@ CREATE OR REPLACE PACKAGE BODY HTM_SQL_API AS
     RETURN;
   EXCEPTION
     WHEN OTHERS THEN
-      -- DBMS_OUTPUT.PUT_LINE('Error in htm_circle_intersect: ' || SQLERRM);
       RAISE;
   END htm_circle_intersect;
 
@@ -118,7 +111,7 @@ CREATE OR REPLACE PACKAGE BODY HTM_SQL_API AS
     p_delimiter CHAR DEFAULT ';'
   ) RETURN HTM_ID_RANGE_LIST PIPELINED IS
     vertex_list HTM_VERTEX_LIST := HTM_VERTEX_LIST();
-    ra_dec_pairs DBMS_SQL.VARCHAR2_TABLE; -- Using a PL/SQL table for split results
+    ra_dec_pairs DBMS_SQL.VARCHAR2_TABLE; 
     current_pair_str VARCHAR2(100);
     ra_str VARCHAR2(50);
     dec_str VARCHAR2(50);
@@ -127,7 +120,7 @@ CREATE OR REPLACE PACKAGE BODY HTM_SQL_API AS
     pos_delimiter NUMBER;
     pos_comma NUMBER;
     
-    temp_string VARCHAR2(32767) := p_vertices_ra_dec_string; -- Max length for varchar2 in PLSQL
+    temp_string VARCHAR2(32767) := p_vertices_ra_dec_string; 
     result_ranges HTM_ID_RANGE_LIST;
 
   BEGIN
@@ -141,7 +134,6 @@ CREATE OR REPLACE PACKAGE BODY HTM_SQL_API AS
         RAISE_APPLICATION_ERROR(-20352, 'Polygon vertices string cannot be empty.');
     END IF;
 
-    -- Basic split logic, can be enhanced with REGEXP_SUBSTR for more complex cases or different Oracle versions.
     LOOP
       pos_delimiter := INSTR(temp_string, p_delimiter);
       IF pos_delimiter > 0 THEN
@@ -149,7 +141,7 @@ CREATE OR REPLACE PACKAGE BODY HTM_SQL_API AS
         temp_string := TRIM(SUBSTR(temp_string, pos_delimiter + 1));
       ELSE
         current_pair_str := TRIM(temp_string);
-        temp_string := NULL; -- No more delimiters
+        temp_string := NULL; 
       END IF;
       
       IF LENGTH(current_pair_str) > 0 THEN
@@ -168,9 +160,8 @@ CREATE OR REPLACE PACKAGE BODY HTM_SQL_API AS
             RAISE_APPLICATION_ERROR(-20354, 'Invalid number format for RA or Dec in polygon string: "' || current_pair_str || '".');
         END;
         
-        -- Store RA as x, Dec as y for HTM_QUERY_INTERFACE.convex_hull_intersect
         vertex_list.EXTEND;
-        vertex_list(vertex_list.LAST) := HTM_VECTOR(ra_val, dec_val, 0); -- z is not used by convex_hull_intersect for RA/Dec inputs
+        vertex_list(vertex_list.LAST) := HTM_VECTOR(ra_val, dec_val, 0); 
       END IF;
 
       EXIT WHEN temp_string IS NULL OR LENGTH(temp_string) = 0;
@@ -190,7 +181,6 @@ CREATE OR REPLACE PACKAGE BODY HTM_SQL_API AS
     RETURN;
   EXCEPTION
     WHEN OTHERS THEN
-      -- DBMS_OUTPUT.PUT_LINE('Error in htm_polygon_intersect: ' || SQLERRM);
       RAISE;
   END htm_polygon_intersect;
 

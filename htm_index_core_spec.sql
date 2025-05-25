@@ -1,5 +1,9 @@
 CREATE OR REPLACE PACKAGE HTM_INDEX_CORE AS
 
+  -- Publicly accessible global variables
+  g_max_build_level NUMBER;
+  g_max_query_level NUMBER;
+
   -- Public Procedures
   PROCEDURE initialize_htm(
     build_level NUMBER,
@@ -29,6 +33,8 @@ CREATE OR REPLACE PACKAGE HTM_INDEX_CORE AS
 
   -- Potentially expose some global state for debugging or advanced use, if necessary
   -- For now, keep them internal to the package body.
+  -- (The above comment is now slightly misleading as we are exposing some state,
+  -- but the variables are fundamental to the package's configuration state)
 
 END HTM_INDEX_CORE;
 /
